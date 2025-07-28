@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>나의 공간 기록 지도</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4478a0d0e3ddbe7bd278996cf1d31810&libraries=services"></script>
+    <style>
+      html,
+      body,
+      #map {
+        width: 100%;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+      .info-box {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 300px;
+        background: white;
+        border: 1px solid #ccc;
+        padding: 10px;
+        display: none;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="info-box" id="infoBox">
+      <h3 id="placeTitle"></h3>
+      <p id="placeCategory"></p>
+      <p id="placeSummary"></p>
+      <img id="placeImage" src="" style="width:100%;max-height:200px;object-fit:cover;" />
+      <p><a id="placeLink" href="#" target="_blank">관련 링크</a></p>
+    </div>
+
+    <script>
+      // Supabase 연결 설정
+      const SUPABASE_URL = 'https://<YOUR_PROJECT>.supabase.co';
+      const SUPABASE_ANON_KEY = '<YOUR_ANON_KEY>';
+      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // 카카오 지도 초기화
+      const mapContainer = document.getElementById('map');
+      const mapOption = {
+        center: new kakao.maps.LatLng(37.5665, 126.978),
+        level: 7,
+      };
+      const map = new kakao.maps.Map(mapContainer, mapOption);
+
+      // 지도에 데이터 불러와서 핀 꽂기
+      async function loadPlaces() {
+        const { data, error } = await supabase.from('places').select('*');
+        if (error) {
+          console.error('불러오기 실패:', error);
+          return;
+        }
+
+        data.forEach((place) => {
+          const marker = new kakao.maps.Marker({
+            map,
+            position: new kakao.maps.LatLng(place.lat, place.lng),
+          });
+
+          kakao.maps.event.addListener(marker, 'click', () => {
+            showPlaceInfo(place);
+          });
+        });
+      }
+
+      function showPlaceInfo(place) {
+        document.getElementById('placeTitle').textContent = place.place_name;
+        document.getElementById('placeCategory').textContent = place.category;
+        document.getElementById('placeSummary').textContent = place.summary;
+        document.getElementById('placeImage').src = place.images?.[0] || '';
+        document.getElementById('placeLink').href = place.link || '#';
+        document.getElementById('infoBox').style.display = 'block';
+      }
+
+      loadPlaces();
+    </script>
+  </body>
+</html>
